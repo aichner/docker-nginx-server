@@ -1,19 +1,19 @@
 FROM alpine:latest
 
-LABEL description "Lightweight WordPress container with Nginx & PHP-FPM based on Alpine Linux."
+LABEL description "Lightweight content server container with Nginx based on Alpine Linux."
 
-# developed for TheDifferent by Florian Kleber for terms of use have a look at the LICENSE file
+# developed for Pharmaziegasse(R) by Florian Kleber for terms of use have a look at the LICENSE file
 MAINTAINER Florian Kleber <kleberbaum@erebos.xyz>
 
 # WordPress change here to desired version
-ARG WORDPRESS_VERSION=4.9.8
-ARG WORDPRESS_SHA1=0945bab959cba127531dceb2c4fed81770812b4f
+ARG CONTENT_URL=https://github.com/IndividualDifference/docker-wordpress/releases/download/1.0/config.tar.gz
+ARG CONTENT_SHA1=ac54253b369f0e7e67b8fe5bf47e33a8f00c710f
 
 # Config change here to desired config backup
 ARG CONFIG_URL=https://github.com/IndividualDifference/docker-wordpress/releases/download/1.0/config.tar.gz
 ARG CONFIG_SHA1=ac54253b369f0e7e67b8fe5bf47e33a8f00c710f
 
-WORKDIR /var/www/wp-content
+WORKDIR /var/www/content
 
 # update, install and cleaning
 RUN echo "## Installing base ##" && \
@@ -23,7 +23,6 @@ RUN echo "## Installing base ##" && \
     apk upgrade --update-cache --available && \
     \
     apk add --force \
-        git@main \
         bash@main \
         nginx@main \
         php7@community \
@@ -46,13 +45,13 @@ RUN echo "## Installing base ##" && \
     \
     && chown -R nobody.nobody /var/www \
     && mkdir -p /usr/src \
-    && echo "## Installing wordpress ##" \
-    && wget "https://wordpress.org/wordpress-${WORDPRESS_VERSION}.tar.gz" -O wordpress.tar.gz \
-    && echo "$WORDPRESS_SHA1 *wordpress.tar.gz" | sha1sum -c - \
-    && tar -xzf wordpress.tar.gz -C /usr/src/ \
-    && chown -R nobody.nobody /usr/src/wordpress \
+    && echo "## Downloading content ##" \
+    && wget "${CONTENT_URL}" -O content.tar.gz \
+    && echo "$CONTENT_SHA1 *content.tar.gz" | sha1sum -c - \
+    && tar -xzf content.tar.gz -C /usr/src/ \
+    && chown -R nobody.nobody /usr/src/content \
     && echo "## Downloading config ##" \
-    && wget "${CONFIG_URL}" \
+    && wget "${CONFIG_URL}" -O config.tar.gz \
     && echo "$CONFIG_SHA1 *config.tar.gz" | sha1sum -c - \
     && echo "## Configuring nginx ##" \
     && tar -xzf config.tar.gz -C /etc/nginx/ nginx.conf \
@@ -65,10 +64,6 @@ RUN echo "## Installing base ##" && \
     && tar -xzf config.tar.gz -C /usr/src/wordpress/ wp-config.php \
     && chown nobody.nobody /usr/src/wordpress/wp-config.php  \
     && chmod 640 /usr/src/wordpress/wp-config.php \
-    && echo "## Configuring wordpress ##" \
-    && tar -xzf config.tar.gz -C /usr/src/wordpress/ wp-secrets.php \
-    && chown nobody.nobody /usr/src/wordpress/wp-secrets.php \
-    && chmod 640 /usr/src/wordpress/wp-secrets.php \
     \
     && rm wordpress.tar.gz \
     && rm config.tar.gz \
@@ -76,8 +71,8 @@ RUN echo "## Installing base ##" && \
 
 EXPOSE 80
 
-# version w/ volume disabled
-#VOLUME /var/www/wp-content
+# add volume
+VOLUME /var/www/content
 
 # add license
 ADD LICENSE /
